@@ -106,6 +106,24 @@
     transition:background .2s,border-color .2s;
   }
   .sp button.on{background:linear-gradient(135deg,var(--royal),var(--electric));border-color:transparent;color:#fff;box-shadow:0 8px 20px -8px rgba(61,139,255,.8)}
+  .offer{
+    border-radius:22px;padding:20px 18px;
+    background:linear-gradient(160deg,rgba(30,79,216,.30) 0%,rgba(10,27,77,.55) 60%,rgba(4,10,30,.7) 100%);
+    border:1px solid rgba(143,166,214,.2);
+  }
+  .offer h2{font-size:16px;font-weight:800;margin-bottom:12px;color:#fff}
+  .offer h3{font-size:13px;font-weight:700;color:var(--ice);margin:18px 0 8px}
+  .offer ol,.offer ul{list-style:none;counter-reset:n;display:flex;flex-direction:column;gap:10px}
+  .offer ol li{counter-increment:n;position:relative;padding-left:38px;font-size:14px;line-height:1.45;color:#E6EEFF}
+  .offer ol li::before{
+    content:counter(n);position:absolute;left:0;top:-1px;width:26px;height:26px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;
+    background:linear-gradient(135deg,var(--royal),var(--electric));box-shadow:0 6px 16px -6px rgba(61,139,255,.9);
+  }
+  .offer ul li{position:relative;padding-left:22px;font-size:14px;line-height:1.45;color:#E6EEFF}
+  .offer ul li::before{content:"";position:absolute;left:4px;top:7px;width:8px;height:8px;border-radius:50%;background:var(--electric);box-shadow:0 0 10px var(--electric)}
+  .offer p{font-size:14px;line-height:1.5;color:#E6EEFF}
+  .offer .who{margin-top:12px;font-size:12.5px;color:var(--muted)}
   .cta{
     width:100%;padding:17px;border:0;border-radius:18px;cursor:pointer;
     font:800 17px 'Manrope',sans-serif;color:#fff;
@@ -149,6 +167,16 @@
     </div>
   </section>
 
+  <section class="offer">
+    <h2 id="o_title"></h2>
+    <ol id="o_steps"></ol>
+    <h3 id="o_el_t"></h3>
+    <ul id="o_el"></ul>
+    <h3 id="o_goal_t"></h3>
+    <p id="o_goal"></p>
+    <p class="who" id="o_who"></p>
+  </section>
+
   <button class="cta" id="cta"></button>
   <p class="note"><span id="t_note"></span> <a id="promo" href="#" target="_blank" rel="noopener"></a></p>
 </div>
@@ -167,9 +195,33 @@ let spins = 1;
 
 /* ---------- Тексты ---------- */
 const I18N = {
-  ru:{title:"Бонус за пополнение на MEXC",sub:"Двигайте ползунок: чем больше сумма, тем выше процент.",bonus:"Ожидаемый бонус",dep:"Пополнение",total:"Итого на счёте",cta:"Начать на MEXC",note:"Пишите в личные сообщения менеджера или смотрите в описании бота.",promo:"Условия акции",rate:"бонус",cap:"Вознаграждение не больше $2 000",spins:"Количество прокруток",lim:"максимум 5 на одну биржу",per:"за прокрутку"},
-  en:{title:"MEXC deposit bonus",sub:"Move the slider: the larger the deposit, the higher the rate.",bonus:"Estimated bonus",dep:"Deposit",total:"Total in account",cta:"Start on MEXC",note:"Message the manager directly or see the bot description.",promo:"Promo terms",rate:"bonus",cap:"Reward is capped at $2,000",spins:"Number of rounds",lim:"max 5 per exchange",per:"per round"},
-  ko:{title:"MEXC 입금 보너스",sub:"슬라이더를 움직이세요. 입금액이 클수록 보너스율이 높아집니다.",bonus:"예상 보너스",dep:"입금액",total:"계좌 합계",cta:"MEXC에서 시작하기",note:"매니저에게 개인 메시지를 보내거나 봇 설명을 확인하세요.",promo:"이벤트 조건",rate:"보너스",cap:"보상은 최대 $2,000까지입니다",spins:"반복 횟수",lim:"거래소당 최대 5회",per:"회당"}
+  ru:{title:"Бонус за пополнение на MEXC",sub:"Двигайте ползунок: чем больше сумма, тем выше процент.",bonus:"Ожидаемый бонус",dep:"Пополнение",total:"Итого на счёте",cta:"Начать на MEXC",note:"Пишите в личные сообщения менеджера или смотрите в описании бота.",promo:"Условия акции",rate:"бонус",cap:"Вознаграждение не больше $2 000",spins:"Количество прокруток",lim:"максимум 5 на одну биржу",per:"за прокрутку",offer:{
+    title:"Как работает связка",
+    steps:["Регистрируетесь на бирже по моей реферальной ссылке.","Пополняете счёт от $10 и переводите средства с Bithumb на MEXC.","MEXC начисляет бонус по акции: чем больше сумма, тем выше процент (примерно от 3% до 9,8%). Посчитайте в калькуляторе выше.","Можно повторить до 5 прокруток на одну биржу, вознаграждение не больше $2 000."],
+    elT:"Кто может стать моим рефералом",
+    el:["вы ещё не зарегистрированы на бирже","вы зарегистрированы, но не вводили реферальный код","вы вводили реферальный код не позднее 1 года назад"],
+    goalT:"Моя цель",
+    goal:"Мне нужно набрать оборот $100k до конца месяца. Если вы даёте большой оборот, я готов поделиться частью своего вознаграждения. Условия обсудим лично.",
+    who:"Я мерчант Bithumb и получаю вознаграждение от биржи за приведённых клиентов."
+  }},
+  en:{title:"MEXC deposit bonus",sub:"Move the slider: the larger the deposit, the higher the rate.",bonus:"Estimated bonus",dep:"Deposit",total:"Total in account",cta:"Start on MEXC",note:"Message the manager directly or see the bot description.",promo:"Promo terms",rate:"bonus",cap:"Reward is capped at $2,000",spins:"Number of rounds",lim:"max 5 per exchange",per:"per round",offer:{
+    title:"How it works",
+    steps:["Register on the exchange through my referral link.","Deposit from $10 and transfer funds from Bithumb to MEXC.","MEXC credits a promo bonus: the larger the amount, the higher the rate (roughly 3% to 9.8%). Check it in the calculator above.","You can repeat up to 5 rounds per exchange, and the reward is capped at $2,000."],
+    elT:"Who can become my referral",
+    el:["you are not registered on the exchange yet","you are registered but never entered a referral code","you entered a referral code no more than 1 year ago"],
+    goalT:"My goal",
+    goal:"I need to reach $100k turnover by the end of the month. If you bring a large volume, I am ready to share part of my reward. We will agree on terms personally.",
+    who:"I am a Bithumb merchant and receive a reward from the exchange for referred clients."
+  }},
+  ko:{title:"MEXC 입금 보너스",sub:"슬라이더를 움직이세요. 입금액이 클수록 보너스율이 높아집니다.",bonus:"예상 보너스",dep:"입금액",total:"계좌 합계",cta:"MEXC에서 시작하기",note:"매니저에게 개인 메시지를 보내거나 봇 설명을 확인하세요.",promo:"이벤트 조건",rate:"보너스",cap:"보상은 최대 $2,000까지입니다",spins:"반복 횟수",lim:"거래소당 최대 5회",per:"회당",offer:{
+    title:"연결 방식 안내",
+    steps:["제 추천 링크로 거래소에 가입합니다.","$10 이상 입금하고 Bithumb에서 MEXC로 자금을 이체합니다.","MEXC가 이벤트에 따라 보너스를 지급합니다. 금액이 클수록 보너스율이 높아집니다(약 3%~9.8%). 위 계산기로 확인하세요.","거래소당 최대 5회 반복할 수 있으며, 보상은 최대 $2,000입니다."],
+    elT:"추천인이 될 수 있는 경우",
+    el:["아직 거래소에 가입하지 않았다","가입했지만 추천 코드를 입력하지 않았다","추천 코드를 입력한 지 1년이 지나지 않았다"],
+    goalT:"제 목표",
+    goal:"이번 달 거래량 $100k를 채워야 합니다. 큰 거래량을 가져오시는 분과는 보상의 일부를 나눌 용의가 있습니다. 조건은 개별적으로 협의합니다.",
+    who:"저는 Bithumb 머천트이며 거래소로부터 소개 고객에 대한 보상을 받습니다."
+  }}
 };
 const tg = window.Telegram && Telegram.WebApp;
 let lang = ((tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code) || navigator.language || "ru").slice(0,2);
@@ -208,6 +260,12 @@ function nice(v){ return v<50 ? Math.round(v) : v<500 ? Math.round(v/5)*5 : v<20
 $("t_title").textContent=T.title; $("t_sub").textContent=T.sub; $("t_bonus").textContent=T.bonus;
 $("t_dep").textContent=T.dep; $("t_dep2").textContent=T.dep; $("t_total").textContent=T.total;
 $("cap").textContent=T.cap; $("t_spins").textContent=T.spins; $("t_lim").textContent=T.lim;
+const O=T.offer;
+$("o_title").textContent=O.title;
+$("o_steps").innerHTML=O.steps.map(x=>"<li>"+x+"</li>").join("");
+$("o_el_t").textContent=O.elT;
+$("o_el").innerHTML=O.el.map(x=>"<li>"+x+"</li>").join("");
+$("o_goal_t").textContent=O.goalT; $("o_goal").textContent=O.goal; $("o_who").textContent=O.who;
 $("cta").textContent=T.cta; $("t_note").textContent=T.note;
 const promo=$("promo"); promo.textContent=T.promo; promo.href=PROMO_URL;
 if(!PROMO_URL || PROMO_URL.indexOf("__")===0) promo.style.display="none";
