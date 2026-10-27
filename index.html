@@ -124,6 +124,16 @@
   .offer ul li::before{content:"";position:absolute;left:4px;top:7px;width:8px;height:8px;border-radius:50%;background:var(--electric);box-shadow:0 0 10px var(--electric)}
   .offer p{font-size:14px;line-height:1.5;color:#E6EEFF}
   .offer .who{margin-top:12px;font-size:12.5px;color:var(--muted)}
+  .ghost{
+    width:100%;padding:13px;border-radius:14px;cursor:pointer;
+    font:700 14px 'Manrope',sans-serif;color:var(--ice);
+    background:rgba(10,27,77,.35);border:1px solid rgba(143,166,214,.25);
+    transition:background .2s,border-color .2s;
+  }
+  .ghost:active{background:rgba(30,79,216,.35);border-color:rgba(61,139,255,.6)}
+  .status{min-height:18px;text-align:center;font-size:13px;color:var(--ice);margin-top:-8px}
+  .status.err{color:#FFB4B4}
+  .cta:disabled{opacity:.7;cursor:default}
   .cta{
     width:100%;padding:17px;border:0;border-radius:18px;cursor:pointer;
     font:800 17px 'Manrope',sans-serif;color:#fff;
@@ -167,6 +177,9 @@
     </div>
   </section>
 
+  <button class="cta" id="send"></button>
+  <p class="status" id="status" role="status"></p>
+
   <section class="offer">
     <h2 id="o_title"></h2>
     <ol id="o_steps"></ol>
@@ -177,15 +190,13 @@
     <p class="who" id="o_who"></p>
   </section>
 
-  <button class="cta" id="cta"></button>
-  <p class="note"><span id="t_note"></span> <a id="promo" href="#" target="_blank" rel="noopener"></a></p>
+  <button class="ghost" id="mgr"></button>
+  <p class="note" id="t_note"></p>
 </div>
 
 <script>
 /* ---------- Настройки (меняйте под реальные условия акции) ---------- */
-const REF_LINK  = "__REF_LINK__";
-const CTA_URL   = "__CTA_URL__";   // куда ведёт кнопка: ссылка t.me/... (менеджер или бот) или обычная ссылка
-const PROMO_URL = "__PROMO_URL__";
+const MANAGER_URL = "https://t.me/Mostex_TH?text=Hi";   // личка менеджера, в поле ввода сразу стоит «Hi»
 // [сумма депозита $, процент бонуса]. Кривая плавно проходит через эти точки.
 const ANCHORS = [[10,3.0],[50,3.0],[100,3.8],[316,5.6],[1000,8.9],[10000,9.8]];
 const MIN = 10, MAX = 10000;
@@ -195,7 +206,7 @@ let spins = 1;
 
 /* ---------- Тексты ---------- */
 const I18N = {
-  ru:{title:"Бонус за пополнение на MEXC",sub:"Двигайте ползунок: чем больше сумма, тем выше процент.",bonus:"Ожидаемый бонус",dep:"Пополнение",total:"Итого на счёте",cta:"Начать на MEXC",note:"Пишите в личные сообщения менеджера или смотрите в описании бота.",promo:"Условия акции",rate:"бонус",cap:"Вознаграждение не больше $2 000",spins:"Количество прокруток",lim:"максимум 5 на одну биржу",per:"за прокрутку",offer:{
+  ru:{title:"Бонус за пополнение на MEXC",sub:"Двигайте ползунок: чем больше сумма, тем выше процент.",bonus:"Ожидаемый бонус",dep:"Пополнение",total:"Итого на счёте",cta:"Начать на MEXC",note:"Пишите в личные сообщения менеджера или смотрите в описании бота.",promo:"Условия акции",rate:"бонус",cap:"Вознаграждение не больше $2 000",spins:"Количество прокруток",lim:"максимум 5 на одну биржу",per:"за прокрутку",send:"Получить связку в чат",sending:"Отправляю…",sent:"Отправил в чат с ботом",err:"Не получилось. Нажмите /start в боте и повторите.",mgr:"Написать менеджеру @Mostex_TH",noTg:"Откройте калькулятор через Telegram.",offer:{
     title:"Как работает связка",
     steps:["Регистрируетесь на бирже по моей реферальной ссылке.","Пополняете счёт от $10 и переводите средства с Bithumb на MEXC.","MEXC начисляет бонус по акции: чем больше сумма, тем выше процент (примерно от 3% до 9,8%). Посчитайте в калькуляторе выше.","Можно повторить до 5 прокруток на одну биржу, вознаграждение не больше $2 000."],
     elT:"Кто может стать моим рефералом",
@@ -204,7 +215,7 @@ const I18N = {
     goal:"Мне нужно набрать оборот $100k до конца месяца. Если вы даёте большой оборот, я готов поделиться частью своего вознаграждения. Условия обсудим лично.",
     who:"Я мерчант Bithumb и получаю вознаграждение от биржи за приведённых клиентов."
   }},
-  en:{title:"MEXC deposit bonus",sub:"Move the slider: the larger the deposit, the higher the rate.",bonus:"Estimated bonus",dep:"Deposit",total:"Total in account",cta:"Start on MEXC",note:"Message the manager directly or see the bot description.",promo:"Promo terms",rate:"bonus",cap:"Reward is capped at $2,000",spins:"Number of rounds",lim:"max 5 per exchange",per:"per round",offer:{
+  en:{title:"MEXC deposit bonus",sub:"Move the slider: the larger the deposit, the higher the rate.",bonus:"Estimated bonus",dep:"Deposit",total:"Total in account",cta:"Start on MEXC",note:"Message the manager directly or see the bot description.",promo:"Promo terms",rate:"bonus",cap:"Reward is capped at $2,000",spins:"Number of rounds",lim:"max 5 per exchange",per:"per round",send:"Get the guide in chat",sending:"Sending…",sent:"Sent to your chat with the bot",err:"Something went wrong. Press /start in the bot and try again.",mgr:"Message the manager @Mostex_TH",noTg:"Open the calculator inside Telegram.",offer:{
     title:"How it works",
     steps:["Register on the exchange through my referral link.","Deposit from $10 and transfer funds from Bithumb to MEXC.","MEXC credits a promo bonus: the larger the amount, the higher the rate (roughly 3% to 9.8%). Check it in the calculator above.","You can repeat up to 5 rounds per exchange, and the reward is capped at $2,000."],
     elT:"Who can become my referral",
@@ -213,7 +224,7 @@ const I18N = {
     goal:"I need to reach $100k turnover by the end of the month. If you bring a large volume, I am ready to share part of my reward. We will agree on terms personally.",
     who:"I am a Bithumb merchant and receive a reward from the exchange for referred clients."
   }},
-  ko:{title:"MEXC 입금 보너스",sub:"슬라이더를 움직이세요. 입금액이 클수록 보너스율이 높아집니다.",bonus:"예상 보너스",dep:"입금액",total:"계좌 합계",cta:"MEXC에서 시작하기",note:"매니저에게 개인 메시지를 보내거나 봇 설명을 확인하세요.",promo:"이벤트 조건",rate:"보너스",cap:"보상은 최대 $2,000까지입니다",spins:"반복 횟수",lim:"거래소당 최대 5회",per:"회당",offer:{
+  ko:{title:"MEXC 입금 보너스",sub:"슬라이더를 움직이세요. 입금액이 클수록 보너스율이 높아집니다.",bonus:"예상 보너스",dep:"입금액",total:"계좌 합계",cta:"MEXC에서 시작하기",note:"매니저에게 개인 메시지를 보내거나 봇 설명을 확인하세요.",promo:"이벤트 조건",rate:"보너스",cap:"보상은 최대 $2,000까지입니다",spins:"반복 횟수",lim:"거래소당 최대 5회",per:"회당",send:"가이드를 채팅으로 받기",sending:"전송 중…",sent:"봇 채팅으로 보냈습니다",err:"실패했습니다. 봇에서 /start를 누르고 다시 시도하세요.",mgr:"매니저에게 문의 @Mostex_TH",noTg:"텔레그램에서 계산기를 열어주세요.",offer:{
     title:"연결 방식 안내",
     steps:["제 추천 링크로 거래소에 가입합니다.","$10 이상 입금하고 Bithumb에서 MEXC로 자금을 이체합니다.","MEXC가 이벤트에 따라 보너스를 지급합니다. 금액이 클수록 보너스율이 높아집니다(약 3%~9.8%). 위 계산기로 확인하세요.","거래소당 최대 5회 반복할 수 있으며, 보상은 최대 $2,000입니다."],
     elT:"추천인이 될 수 있는 경우",
@@ -266,9 +277,7 @@ $("o_steps").innerHTML=O.steps.map(x=>"<li>"+x+"</li>").join("");
 $("o_el_t").textContent=O.elT;
 $("o_el").innerHTML=O.el.map(x=>"<li>"+x+"</li>").join("");
 $("o_goal_t").textContent=O.goalT; $("o_goal").textContent=O.goal; $("o_who").textContent=O.who;
-$("cta").textContent=T.cta; $("t_note").textContent=T.note;
-const promo=$("promo"); promo.textContent=T.promo; promo.href=PROMO_URL;
-if(!PROMO_URL || PROMO_URL.indexOf("__")===0) promo.style.display="none";
+$("send").textContent=T.send; $("mgr").textContent=T.mgr; $("t_note").textContent=T.note;
 
 /* ---------- Кривая на графике ---------- */
 const svg=$("curve"), W=400, H=96, PAD=8, YMIN=2.5, YMAX=10.2;
@@ -336,11 +345,28 @@ for(let n=1;n<=MAX_SPINS;n++){
   $("sp").appendChild(b);
 }
 
-$("cta").onclick=()=>{
-  const url = (CTA_URL && CTA_URL.indexOf("__")!==0) ? CTA_URL : REF_LINK;
-  if(tg && /^https:\/\/t\.me\//.test(url) && tg.openTelegramLink) tg.openTelegramLink(url);
-  else if(tg && tg.openLink) tg.openLink(url);
-  else window.open(url,"_blank");
+const statusEl=$("status");
+function setStatus(t,err){ statusEl.textContent=t||""; statusEl.classList.toggle("err",!!err); }
+
+/* Кнопка «Получить связку в чат»: сервер бота сам присылает человеку видео и сообщение */
+$("send").onclick=async()=>{
+  const btn=$("send");
+  if(!tg || !tg.initData){ setStatus(T.noTg,true); return; }
+  btn.disabled=true; setStatus(T.sending,false);
+  try{
+    const r=await fetch("/api/offer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({initData:tg.initData})});
+    const j=await r.json();
+    if(j.ok){
+      setStatus(T.sent,false);
+      if(tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+      setTimeout(()=>{ try{ tg.close(); }catch(e){} },900);
+    }else{ setStatus(T.err,true); btn.disabled=false; }
+  }catch(e){ setStatus(T.err,true); btn.disabled=false; }
+};
+
+/* Нижняя кнопка: личка менеджера, в поле ввода уже стоит «Hi» */
+$("mgr").onclick=()=>{
+  if(tg && tg.openTelegramLink) tg.openTelegramLink(MANAGER_URL); else window.open(MANAGER_URL,"_blank");
 };
 
 if(tg){ tg.ready(); tg.expand(); try{ tg.setHeaderColor("#040A1E"); tg.setBackgroundColor("#040A1E"); }catch(e){} }

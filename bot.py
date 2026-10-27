@@ -1,8 +1,14 @@
 import asyncio
+import hashlib
+import hmac
+import json
 import os
+import re
+import time
 from pathlib import Path
+from urllib.parse import parse_qsl
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart
 from aiogram.types import (
     InlineKeyboardButton,
@@ -15,13 +21,20 @@ from aiohttp import web
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 WEBAPP_URL = os.environ["WEBAPP_URL"].rstrip("/")      # публичный https-адрес сервиса (Render)
-REF_LINK = os.environ.get("REF_LINK", "https://www.mexc.com")  # ваша реферальная ссылка
-PROMO_URL = os.environ.get("PROMO_URL", "")            # официальная страница акции
-CTA_URL = os.environ.get("CTA_URL", REF_LINK)          # куда ведёт кнопка: t.me/менеджер, t.me/бот?start=... или реф-ссылка
+VIDEO_FILE_ID = os.environ.get("VIDEO_FILE_ID", "").strip()   # file_id видео, которое бот шлёт в чат
 PORT = int(os.environ.get("PORT", "8080"))
 
 HTML = (Path(__file__).parent / "index.html").read_text(encoding="utf-8")
-HTML = HTML.replace("__REF_LINK__", REF_LINK).replace("__CTA_URL__", CTA_URL).replace("__PROMO_URL__", PROMO_URL)
+
+# Сообщение от вас: части разделяются строкой --- и уходят в чат отдельными сообщениями
+_offer = (Path(__file__).parent / "offer_message.txt").read_text(encoding="utf-8")
+OFFER_PARTS = [p.strip() for p in re.split(r"^\s*---\s*$", _offer, flags=re.M) if p.strip()]
+CAPTIONS = {
+    "ru": "Видео: как правильно переводить деньги",
+    "ko": "영상: 올바르게 송금하는 방법",
+    "en": "Video: how to transfer the money correctly",
+}
+_last_sent: dict[int, float] = {}
 
 TEXTS = {
     "ru": {
@@ -79,6 +92,61 @@ async def start(message: Message):
     await message.answer(t["start"], reply_markup=kb)
 
 
+@dp.message(F.video)
+async def video_file_id(message: Message):
+    """Пока VIDEO_FILE_ID не задан: пришлите боту видео и он ответит его file_id."""
+    if VIDEO_FILE_ID:
+        return
+    await message.answer("VIDEO_FILE_ID:\n" + message.video.file_id)
+
+
+def check_init_data(init_data: str, max_age: int = 86400):
+    """Проверяет подпись Telegram Mini App и возвращает данные пользователя или None."""
+    pairs = dict(parse_qsl(init_data, keep_blank_values=True))
+    received = pairs.pop("hash", None)
+    if not received or "user" not in pairs:
+        return None
+    check = "\n".join(f"{k}={v}" for k, v in sorted(pairs.items()))
+    secret = hmac.new(b"WebAppData", BOT_TOKEN.encode(), hashlib.sha256).digest()
+    calc = hmac.new(secret, check.encode(), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(calc, received):
+        return None
+    if time.time() - int(pairs.get("auth_date", "0")) > max_age:
+        return None
+    return json.loads(pairs["user"])
+
+
+async def deliver_offer(bot: Bot, user_id: int, lang: str):
+    if VIDEO_FILE_ID:
+        try:
+            await bot.send_video(user_id, VIDEO_FILE_ID, caption=CAPTIONS[lang])
+        except Exception as e:  # видео не должно мешать тексту дойти
+            print("send_video failed:", e)
+    for part in OFFER_PARTS:
+        await bot.send_message(user_id, part)
+        await asyncio.sleep(0.4)
+
+
+async def api_offer(request: web.Request) -> web.Response:
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"ok": False}, status=400)
+    user = check_init_data(str(body.get("initData", "")))
+    if not user:
+        return web.json_response({"ok": False}, status=403)
+    uid = user["id"]
+    if time.time() - _last_sent.get(uid, 0) < 20:       # защита от повторных нажатий
+        return web.json_response({"ok": True})
+    _last_sent[uid] = time.time()
+    try:
+        await deliver_offer(request.app["bot"], uid, pick_lang(user.get("language_code")))
+    except Exception as e:
+        print("deliver_offer failed:", e)
+        return web.json_response({"ok": False}, status=500)
+    return web.json_response({"ok": True})
+
+
 async def index(_: web.Request) -> web.Response:
     return web.Response(text=HTML, content_type="text/html", headers={"Cache-Control": "no-store"})
 
@@ -94,6 +162,8 @@ async def main():
     )
 
     app = web.Application()
+    app["bot"] = bot
+    app.router.add_post("/api/offer", api_offer)
     app.router.add_get("/", index)
     app.router.add_get("/health", health)
     runner = web.AppRunner(app)
