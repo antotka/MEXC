@@ -203,6 +203,7 @@ const MIN = 10, MAX = 10000;
 const BONUS_CAP = 2000;   // максимум вознаграждения, $
 const MAX_SPINS = 5;   // лимит прокруток на одну биржу
 let spins = 1;
+const state = {dep:0, bonus:0, calcSent:0, timer:null};
 
 /* ---------- Тексты ---------- */
 const I18N = {
@@ -305,6 +306,7 @@ function render(){
   const s=+slider.value, dep=nice(fromSlider(s)), p=pct(dep), raw=dep*p/100*spins, bonus=Math.min(raw,BONUS_CAP);
   $("bonus").textContent = bonus<100 ? fmt2(bonus) : fmtInt(bonus);
   $("rate").textContent = "≈ " + p.toFixed(1).replace(".",",") + "% " + T.per + (spins>1 ? "  ×  " + spins : "");
+  state.dep=dep; state.bonus=bonus;
   $("dep").textContent = fmtInt(dep); $("dep2").textContent = fmtInt(dep);
   $("total").textContent = fmtInt(dep+bonus);
   slider.style.setProperty("--p", s/10);
@@ -319,13 +321,14 @@ function render(){
   render.last=dep;
 }
 slider.addEventListener("input",render);
+slider.addEventListener("input",()=>scheduleCalc());
 window.addEventListener("resize",render);
 
 /* Быстрые суммы с плавным движением ползунка */
 [10,100,1000,10000].forEach(v=>{
   const b=document.createElement("button"); b.className="chip"; b.dataset.s=toSlider(v);
   b.textContent=v>=1000 ? "$"+(v/1000)+"k" : "$"+v;
-  b.onclick=()=>glide(toSlider(v));
+  b.onclick=()=>{ glide(toSlider(v)); scheduleCalc(); };
   $("chips").appendChild(b);
 });
 let raf;
@@ -341,8 +344,25 @@ function glide(target){
 
 for(let n=1;n<=MAX_SPINS;n++){
   const b=document.createElement("button"); b.dataset.n=n; b.textContent=n;
-  b.onclick=()=>{ spins=Math.min(n,MAX_SPINS); if(tg&&tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); render(); };
+  b.onclick=()=>{ spins=Math.min(n,MAX_SPINS); if(tg&&tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); render(); scheduleCalc(); };
   $("sp").appendChild(b);
+}
+
+/* Метрики: события уходят на сервер бота, а он присылает их владельцу */
+function track(ev,data){
+  if(!tg || !tg.initData) return;
+  try{
+    fetch("/api/event",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({initData:tg.initData,event:ev,data:data||{}}),keepalive:true}).catch(()=>{});
+  }catch(e){}
+}
+function scheduleCalc(){          // одно событие «считал» после паузы, не больше 5 за сеанс
+  clearTimeout(state.timer);
+  state.timer=setTimeout(()=>{
+    if(state.calcSent>=5) return;
+    state.calcSent++;
+    track("calc",{deposit:state.dep,spins:spins,bonus:state.bonus});
+  },2500);
 }
 
 const statusEl=$("status");
@@ -366,12 +386,14 @@ $("send").onclick=async()=>{
 
 /* Нижняя кнопка: личка менеджера, в поле ввода уже стоит «Hi» */
 $("mgr").onclick=()=>{
+  track("mgr");
   if(tg && tg.openTelegramLink) tg.openTelegramLink(MANAGER_URL); else window.open(MANAGER_URL,"_blank");
 };
 
 if(tg){ tg.ready(); tg.expand(); try{ tg.setHeaderColor("#040A1E"); tg.setBackgroundColor("#040A1E"); }catch(e){} }
 slider.value=toSlider(100);
 render();
+track("open");
 </script>
 </body>
 </html>
